@@ -1,0 +1,178 @@
+:root {
+  color: #3d2c29;
+  font-family: "Noto Sans SC", "Nunito", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #ffd7b8;
+}
+
+#app {
+  position: fixed;
+  inset: 0;
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  animation: rise 0.7s ease;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.hud {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.title-card,
+.controls {
+  background: rgba(255, 250, 245, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  box-shadow: 0 14px 40px rgba(90, 48, 28, 0.12);
+  backdrop-filter: blur(16px);
+}
+
+.title-card {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  width: min(300px, calc(100vw - 36px));
+  padding: 14px 16px 13px;
+  border-radius: 20px;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  color: #a07868;
+}
+
+.title-card h1 {
+  margin: 2px 0 6px;
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  color: #e36a62;
+}
+
+.sub {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #7a625c;
+}
+
+.controls {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: min(540px, calc(100vw - 24px));
+  padding: 12px 14px;
+  border-radius: 18px;
+  pointer-events: auto;
+}
+
+.play {
+  border: 0;
+  background: #ef6f68;
+  color: white;
+  font: inherit;
+  font-weight: 700;
+  border-radius: 12px;
+  padding: 10px 16px;
+  min-width: 76px;
+  cursor: pointer;
+}
+
+.play[aria-pressed='true'] {
+  background: #3f9a72;
+}
+
+.play:focus-visible,
+.speed input:focus-visible {
+  outline: 2px solid #e36a62;
+  outline-offset: 2px;
+}
+
+.speed {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.speed input {
+  flex: 1;
+  min-width: 0;
+  accent-color: #ef6f68;
+  cursor: pointer;
+}
+
+.speed output {
+  min-width: 118px;
+  text-align: right;
+  font-size: 13px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: #6d564f;
+}
+
+@media (max-width: 640px) {
+  .title-card {
+    top: 12px;
+    left: 12px;
+    padding: 10px 12px;
+  }
+
+  .title-card h1 {
+    font-size: 32px;
+  }
+
+  .sub {
+    font-size: 12px;
+  }
+
+  .controls {
+    bottom: 12px;
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .speed output {
+    min-width: 92px;
+    font-size: 12px;
+  }
+}
