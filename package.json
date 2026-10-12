@@ -1,0 +1,28 @@
+{
+  "name": "pelican-rides",
+  "private": true,
+  "version": "1.0.0",
+  "description": "鹈鹕骑车：Three.js 海边骑行小品",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "cap:sync": "npm run build && cap sync android",
+    "cap:sync:ios": "npm run build && cap sync ios",
+    "android:debug": "npm run cap:sync && cd android && ./gradlew assembleDebug",
+    "ios:unsigned": "npm run cap:sync:ios && ./scripts/build-unsigned-ipa.sh"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.3",
+    "@types/three": "^0.186.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.0"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/core": "^8.5.3",
+    "@capacitor/ios": "^8.5.3",
+    "three": "^0.186.1"
+  }
+}

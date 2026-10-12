@@ -1,0 +1,217 @@
+name: Pelican rides packages
+
+# 每次 push 构建安卓 debug APK 和未签名 iOS 真机 IPA（CODE_SIGNING_ALLOWED=NO）。
+# 不读取 Apple 证书或仓库密钥。IPA 不是 App Store / TestFlight 包。
+# 推送到 main 或 cursor/pelican-bike-3d-906c 时，把两个包挂到 Release v1.0.0
+# （若 v1.0.0 不能再追加文件，则新建 v1.0.1，并带上 v1.0.0 已有的文件，包括 APK）。
+# 标签 pelican-rides-v* 仍会单独发一份同名 Release。
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pelican-rides-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android-debug:
+    name: Android debug APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install Android SDK 36
+        run: |
+          set -euo pipefail
+          if [ -z "${ANDROID_SDK_ROOT:-}" ]; then
+            echo "ANDROID_SDK_ROOT is not set on this runner" >&2
+            exit 1
+          fi
+          sdkmanager="$(find "$ANDROID_SDK_ROOT/cmdline-tools" -type f -name sdkmanager | head -n 1)"
+          if [ -z "$sdkmanager" ]; then
+            echo "sdkmanager not found under $ANDROID_SDK_ROOT" >&2
+            exit 1
+          fi
+          yes | "$sdkmanager" --licenses >/dev/null || true
+          "$sdkmanager" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Build web assets and sync Capacitor Android
+        run: npm run cap:sync
+
+      - name: Assemble debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Name sideload APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk pelican-rides-debug.apk
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: pelican-rides-debug
+          path: pelican-rides-debug.apk
+          if-no-files-found: error
+
+  ios-unsigned:
+    name: iOS unsigned IPA
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Build web assets and sync Capacitor iOS
+        run: npm run cap:sync:ios
+
+      - name: Build unsigned IPA
+        env:
+          DERIVED_DATA_PATH: ${{ runner.temp }}/DerivedData
+        run: ./scripts/build-unsigned-ipa.sh "$PWD/pelican-rides.ipa"
+
+      - name: Upload unsigned IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: pelican-rides-ipa
+          path: pelican-rides.ipa
+          if-no-files-found: error
+
+  release:
+    name: GitHub Release
+    needs: [android-debug, ios-unsigned]
+    if: >-
+      github.ref == 'refs/heads/cursor/pelican-bike-3d-906c' ||
+      github.ref == 'refs/heads/main' ||
+      startsWith(github.ref, 'refs/tags/pelican-rides-v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download packages
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+
+      - name: Stage release files
+        run: |
+          set -euo pipefail
+          find release-assets -type f -print
+          mkdir -p release-dist
+          apk="$(find release-assets -type f -name 'pelican-rides-debug.apk' -print -quit)"
+          ipa="$(find release-assets -type f -name 'pelican-rides.ipa' -print -quit)"
+          if [ -z "$apk" ] || [ -z "$ipa" ]; then
+            echo "缺少 APK 或 IPA" >&2
+            exit 1
+          fi
+          cp "$apk" release-dist/pelican-rides-debug.apk
+          cp "$ipa" release-dist/pelican-rides.ipa
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          notes="$(mktemp)"
+          printf '%s\n' \
+            '侧载安装包，不是 App Store，也不是 TestFlight。' \
+            '' \
+            '- `pelican-rides-debug.apk`：安卓调试包。在手机上允许未知来源后安装。' \
+            '- `pelican-rides.ipa`：未签名 iOS 包（构建时 `CODE_SIGNING_ALLOWED=NO`）。用 SideStore 或 AltStore 和免费 Apple ID 重签，或在 Mac 上用 Xcode 打开工程、选 Debug 装到自己的 iPhone。' \
+            '- `pelican-rides-ios-simulator.zip`（若仍在该 Release 上）：模拟器包，不能装进 iPhone。' \
+            '' \
+            "安装步骤见 [INSTALL.md](https://github.com/${GITHUB_REPOSITORY}/blob/${GITHUB_SHA}/INSTALL.md)。" \
+            '' \
+            '免费 Apple ID 的签名大约 7 天后过期。这个仓库没有配置 Apple 证书。' \
+            > "$notes"
+
+          publish_named() {
+            tag="$1"
+            if gh release view "$tag" >/dev/null 2>&1; then
+              gh release upload "$tag" \
+                release-dist/pelican-rides-debug.apk \
+                release-dist/pelican-rides.ipa \
+                --clobber
+              gh release edit "$tag" --title "鹈鹕骑车 ${tag}" --notes-file "$notes"
+            else
+              gh release create "$tag" \
+                release-dist/pelican-rides-debug.apk \
+                release-dist/pelican-rides.ipa \
+                --target "$GITHUB_SHA" \
+                --title "鹈鹕骑车 ${tag}" \
+                --notes-file "$notes"
+            fi
+          }
+
+          publish_stable() {
+            if gh release upload v1.0.0 \
+              release-dist/pelican-rides-debug.apk \
+              release-dist/pelican-rides.ipa \
+              --clobber; then
+              gh release edit v1.0.0 --title "鹈鹕骑车 v1.0.0" --notes-file "$notes"
+              echo "Updated v1.0.0"
+              return 0
+            fi
+            echo "v1.0.0 did not accept new assets; publishing v1.0.1 and keeping existing assets"
+            mkdir -p previous
+            gh release download v1.0.0 --dir previous --clobber
+            cp release-dist/pelican-rides-debug.apk previous/pelican-rides-debug.apk
+            cp release-dist/pelican-rides.ipa previous/pelican-rides.ipa
+            if gh release view v1.0.1 >/dev/null 2>&1; then
+              gh release upload v1.0.1 \
+                previous/pelican-rides-debug.apk \
+                previous/pelican-rides.ipa \
+                --clobber
+              gh release edit v1.0.1 --title "鹈鹕骑车 v1.0.1" --notes-file "$notes"
+            else
+              gh release create v1.0.1 \
+                --target "$GITHUB_SHA" \
+                --title "鹈鹕骑车 v1.0.1" \
+                --notes-file "$notes" \
+                previous/*
+            fi
+          }
+
+          case "$GITHUB_REF" in
+            refs/tags/pelican-rides-v*)
+              publish_named "$GITHUB_REF_NAME"
+              ;;
+            refs/heads/cursor/pelican-bike-3d-906c|refs/heads/main)
+              publish_stable
+              ;;
+          esac

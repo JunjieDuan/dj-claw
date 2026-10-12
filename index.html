@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="description" content="一只鹈鹕骑着自行车，在循环的海边公路上一直向前。" />
+    <title>鹈鹕骑车</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <div class="hud">
+      <header class="title-card">
+        <p class="eyebrow">大嘴鸟的午后</p>
+        <h1>鹈鹕骑车</h1>
+        <p class="sub">单指拖拽旋转视角，双指缩放。点按暂停，或按空格键。</p>
+      </header>
+      <section class="controls" aria-label="骑行控制">
+        <button id="toggle" class="play" type="button" aria-pressed="false">暂停</button>
+        <label class="speed">
+          <span>速度</span>
+          <input id="speed" type="range" min="0" max="6" step="0.1" value="3" />
+          <output id="speed-out" for="speed">巡游 · 3.0 m/s</output>
+        </label>
+      </section>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
