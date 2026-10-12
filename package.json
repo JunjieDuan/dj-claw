@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "cap:sync": "npm run build && cap sync android",
     "cap:sync:ios": "npm run build && cap sync ios",
-    "android:debug": "npm run cap:sync && cd android && ./gradlew assembleDebug"
+    "android:debug": "npm run cap:sync && cd android && ./gradlew assembleDebug",
+    "ios:unsigned": "npm run cap:sync:ios && ./scripts/build-unsigned-ipa.sh"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.5.3",
