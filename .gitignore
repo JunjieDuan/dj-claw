@@ -22,6 +22,8 @@ android/.idea
 *.apk
 *.aab
 *.ap_
+*.ipa
+*.xcarchive
 *.dex
 
 # Editor directories and files

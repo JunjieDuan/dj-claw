@@ -6,5 +6,11 @@
   "android": {
     "backgroundColor": "#ffd7b8",
     "allowMixedContent": false
+  },
+  "ios": {
+    "backgroundColor": "#ffd7b8",
+    "scrollEnabled": false,
+    "contentInset": "never",
+    "zoomEnabled": false
   }
 }

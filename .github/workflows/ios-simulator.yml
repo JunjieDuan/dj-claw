@@ -1,0 +1,98 @@
+name: iOS simulator app
+
+on:
+  push:
+    branches:
+      - cursor/pelican-bike-3d-906c
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  simulator:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Build web assets and sync Capacitor iOS
+        run: npm run cap:sync:ios
+
+      - name: Build unsigned simulator app
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath ios/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=- \
+            build
+          app="$(find ios/DerivedData/Build/Products -type d -name '*.app' | head -n 1)"
+          if [ -z "${app}" ]; then
+            echo "Simulator .app was not produced" >&2
+            exit 1
+          fi
+          echo "Built ${app}"
+          ditto -c -k --keepParent "${app}" "${GITHUB_WORKSPACE}/pelican-rides-ios-simulator.zip"
+          unzip -t "${GITHUB_WORKSPACE}/pelican-rides-ios-simulator.zip" >/dev/null
+
+      - name: Upload simulator zip artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pelican-rides-ios-simulator
+          path: pelican-rides-ios-simulator.zip
+          if-no-files-found: error
+
+      - name: Upload simulator zip to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          zip="pelican-rides-ios-simulator.zip"
+          repo="${{ github.repository }}"
+          if gh release upload v1.0.0 "${zip}" --clobber --repo "${repo}"; then
+            echo "Updated release v1.0.0"
+            exit 0
+          fi
+          echo "v1.0.0 did not accept a new asset; publishing v1.0.1 with the existing APK"
+          mkdir -p release-assets
+          gh release download v1.0.0 --pattern pelican-rides-debug.apk --dir release-assets --repo "${repo}"
+          notes="$(cat <<'EOF'
+安卓 debug 包与 iOS 模拟器包。
+
+- 包名：com.junjieduan.pelicanrides
+- 方向：横屏
+- 安卓：pelican-rides-debug.apk，侧载安装即可
+- iOS：pelican-rides-ios-simulator.zip 是未签名的模拟器 App.app，不能安装到真机
+EOF
+)"
+          if gh release view v1.0.1 --repo "${repo}" >/dev/null 2>&1; then
+            gh release upload v1.0.1 "${zip}" release-assets/pelican-rides-debug.apk --clobber --repo "${repo}"
+          else
+            gh release create v1.0.1 \
+              --repo "${repo}" \
+              --target "${{ github.sha }}" \
+              --title "鹈鹕骑车 v1.0.1" \
+              --notes "${notes}" \
+              "${zip}" \
+              release-assets/pelican-rides-debug.apk
+          fi
