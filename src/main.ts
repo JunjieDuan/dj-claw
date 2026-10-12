@@ -210,6 +210,11 @@ function setPlaying(next: boolean): void {
   renderSpeed()
 }
 
+const controlsBar = document.querySelector<HTMLElement>('.controls')
+controlsBar?.addEventListener('pointerdown', (event) => {
+  event.stopPropagation()
+})
+
 toggle.addEventListener('click', () => setPlaying(!playing))
 speedInput.addEventListener('input', () => {
   speed = Number(speedInput.value)
@@ -224,11 +229,16 @@ window.addEventListener('keydown', (event) => {
   setPlaying(!playing)
 })
 
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight
+function resize(): void {
+  const width = window.innerWidth
+  const height = Math.max(window.innerHeight, 1)
+  camera.aspect = width / height
   camera.updateProjectionMatrix()
-  renderer.setSize(window.innerWidth, window.innerHeight)
-})
+  renderer.setSize(width, height)
+}
+
+window.addEventListener('resize', resize)
+window.visualViewport?.addEventListener('resize', resize)
 
 const clock = { last: performance.now() }
 

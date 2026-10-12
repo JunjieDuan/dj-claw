@@ -1,0 +1,10 @@
+{
+  "appId": "com.junjieduan.pelicanrides",
+  "appName": "鹈鹕骑车",
+  "webDir": "dist",
+  "backgroundColor": "#ffd7b8",
+  "android": {
+    "backgroundColor": "#ffd7b8",
+    "allowMixedContent": false
+  }
+}
