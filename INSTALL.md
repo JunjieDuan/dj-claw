@@ -4,7 +4,7 @@
 
 这些包**不是 App Store 应用，也不是 TestFlight**。安卓是调试 APK。iOS 是未签名 IPA，要靠 SideStore 或 AltStore 用你自己的免费 Apple ID 重签。仓库里没有 Apple 证书、描述文件或密钥，默认构建也不需要这些密钥。
 
-请下载标签 **pelican-rides-v0.1.0** 里的两个文件。更早的 Release `v1.0.0` 只有安卓包。文件名里带 `simulator` 的压缩包是模拟器产物，不能装进 iPhone。
+请下载 Release [v1.0.0](https://github.com/JunjieDuan/dj-claw/releases/tag/v1.0.0) 里的 `pelican-rides-debug.apk` 和 `pelican-rides.ipa`。若这次构建改挂到了 `v1.0.1`，用 [v1.0.1](https://github.com/JunjieDuan/dj-claw/releases/tag/v1.0.1)。同名文件也在 [pelican-rides-v0.1.0](https://github.com/JunjieDuan/dj-claw/releases/tag/pelican-rides-v0.1.0)。文件名里带 `simulator` 的压缩包是模拟器产物，不能装进 iPhone。
 
 ## 下载
 
@@ -17,7 +17,7 @@ https://github.com/JunjieDuan/dj-claw/releases
 | `pelican-rides-debug.apk` | 安卓手机 |
 | `pelican-rides.ipa` | iPhone / iPad，经由 SideStore 或 AltStore |
 
-发布由标签触发。把 `pelican-rides-v*` 推到 GitHub（例如 `pelican-rides-v0.1.0`）后，Actions 会在 Ubuntu 上打 APK、在 macOS 上打未签名 IPA，并挂到同名 Release。普通代码推送只把包留在 Actions 的 artifact 里，不会发 Release。
+推送到 `main` 或 `cursor/pelican-bike-3d-906c` 时，Actions 会在 Ubuntu 上打 APK、在 macOS 上打未签名 IPA，上传为 artifact，并挂到 Release `v1.0.0`（不能追加时改为 `v1.0.1`，同时保留已有的 APK）。标签 `pelican-rides-v*` 会另外发一份同名 Release。
 
 ## 安卓
 
@@ -80,8 +80,16 @@ IPA 在 GitHub 的 macOS 运行器上编译，Release 配置写了 `CODE_SIGNING
 
 刷新：大约每 7 天内，让手机和运行 AltServer 的电脑处在同一个 Wi-Fi，在 AltStore 里刷新。电脑不在线时，AltStore 不能替你续期。
 
-## 付费开发者账号
+## 本地 Xcode
 
-默认路径不使用付费 Apple Developer 账号，工作流里也没有证书密钥。如果以后你自己有付费账号，在自己的 Mac 上用 Xcode 打开 `ios/App/App.xcodeproj` 再签名即可。
+有 Mac 时，可以不经过 SideStore / AltStore，用数据线把工程装到这台 iPhone。用的是你自己的免费 Apple ID，签名同样大约 7 天有效。
 
-不要把 `.p12`、描述文件、App Store Connect API 密钥或 Apple ID 密码提交到这个仓库。付费签名可以装到 TestFlight 或 App Store，那是另一条路，和这里的未签名 IPA 无关。
+1. 用数据线连接 iPhone，在手机上点信任这台电脑。手机需要 iOS 15 或更高，并设置锁屏密码。
+2. 用 Xcode 打开 `ios/App/App.xcodeproj`。若本机还没有网页资源，先在仓库根目录执行 `npm install` 和 `npm run cap:sync:ios`。
+3. 选中 App 目标，打开 Signing & Capabilities，勾选 Automatically manage signing，Team 选择你在 Xcode → Settings → Accounts 里登录的 Apple ID。
+4. 窗口上方的运行目标选这台 iPhone。scheme 用 Debug（Run 的默认配置就是 Debug），点 Run。
+5. 第一次打开若提示不受信任，到「设置 → 通用 → VPN 与设备管理」里信任该 Apple ID。
+
+Release 配置写死了 `CODE_SIGNING_ALLOWED=NO`，是给 GitHub 打未签名 IPA 用的。在 Xcode 里选 Release 再 Run，装不到手机。未签名的 `pelican-rides.ipa` 也不能从 Xcode 的 Devices 窗口直接装进去，请用上面的 SideStore / AltStore，或按本节用 Debug 运行。
+
+不要把 `.p12`、描述文件、App Store Connect API 密钥或 Apple ID 密码提交到这个仓库。付费开发者账号、TestFlight 和 App Store 不在这条默认路径里。

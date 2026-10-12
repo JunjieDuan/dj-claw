@@ -59,9 +59,9 @@ npm run cap:sync
 
 同一个 Capacitor 工程也包含 iOS 端，包名 `com.junjieduan.pelicanrides`，主屏幕名称「鹈鹕骑车」。只允许横屏（可左右翻转）。WebView 关闭了原生滚动和捏合缩放，单指拖拽和双指缩放交给页面里的相机，暂停按钮和速度滑杆与安卓共用同一套更大的点按区域。
 
-Release 配置关闭代码签名。打出来的 `pelican-rides.ipa` 没有付费证书，用 SideStore 或 AltStore 和免费 Apple ID 重签后装到真机。这不是 App Store，也不是 TestFlight。
+Release 配置关闭代码签名（`CODE_SIGNING_ALLOWED=NO`）。打出来的 `pelican-rides.ipa` 没有开发者证书，不是 App Store，也不是 TestFlight。装到 iPhone 时，用 SideStore、AltStore，或在 Mac 上用 Xcode 的 Debug 配置和你自己的免费 Apple ID 重签。免费 Apple ID 的签名大约 7 天后过期，需要刷新。
 
-有 Mac 和 Xcode 时：
+有 Mac 和 Xcode、只想自己打未签名包时：
 
 ```bash
 npm install
@@ -70,19 +70,39 @@ npm run ios:unsigned
 
 产物在仓库根目录的 `pelican-rides.ipa`。没有 Mac 时，用下面的 GitHub Release。
 
+## 装到 iPhone
+
+仓库不存放 Apple 证书。下载 Release 里的 `pelican-rides.ipa` 后，任选一条：
+
+**SideStore 或 AltStore（不需要自己编译）**
+
+1. 在电脑上按官方说明装好 [SideStore](https://docs.sidestore.io/) 或 [AltStore](https://altstore.io/)，并用你自己的免费 Apple ID 登录。不要把 Apple ID 交给来路不明的签名网站。
+2. 在手机上打开 SideStore 或 AltStore，点加号，选中 `pelican-rides.ipa`。
+3. 若提示不受信任，到「设置 → 通用 → VPN 与设备管理」里信任这个 Apple ID。
+4. 主屏幕上的名字是「鹈鹕骑车」，横屏打开。大约每 7 天在同一个工具里刷新一次，否则会打不开。
+
+**本地 Xcode（用数据线装到这台 iPhone）**
+
+1. 用数据线连接 iPhone，在手机上点信任这台电脑。
+2. 用 Xcode 打开 `ios/App/App.xcodeproj`。
+3. 选中 App 目标的 Signing & Capabilities，勾选 Automatically manage signing，Team 选你登录的 Apple ID。
+4. 运行目标选这台 iPhone，scheme 保持 Debug（Run 的默认配置），点 Run。Debug 会走自动签名。Release 固定为不签名，只给 GitHub 打未签名 IPA，不要用 Release 直接装到手机。
+5. 第一次打开若被拦截，同样到「设置 → 通用 → VPN 与设备管理」里信任该 Apple ID。
+
+更细的刷新限制和安卓安装步骤在 [INSTALL.md](INSTALL.md)。
+
 ## GitHub 上的安装包
 
-工作流 `.github/workflows/pelican-rides.yml`：
+工作流 `.github/workflows/pelican-rides.yml` 不读取 Apple 证书：
 
-- 每次推送：Ubuntu 构建 `pelican-rides-debug.apk`，macOS 用 `CODE_SIGNING_ALLOWED=NO` 构建 `pelican-rides.ipa`。
-- 标签 `pelican-rides-v*`：两个包都成功后，创建 GitHub Release 并附上这两个文件。
+- 每次推送：Ubuntu 构建 `pelican-rides-debug.apk`，macOS 用 `CODE_SIGNING_ALLOWED=NO` 构建 `pelican-rides.ipa`，并作为 Actions artifact 上传。
+- 推送到 `main` 或 `cursor/pelican-bike-3d-906c`：两个包都成功后，追加到 Release `v1.0.0`（已有的安卓 APK 会保留并更新；模拟器 zip 若还在该 Release 上也会留下）。如果 `v1.0.0` 不能再追加文件，就新建 `v1.0.1`，并带上 `v1.0.0` 里已有的文件。
+- 标签 `pelican-rides-v*`：另外创建同名 Release。
 
 ```bash
 git tag pelican-rides-v0.1.0
 git push origin pelican-rides-v0.1.0
 ```
-
-安装说明：[INSTALL.md](INSTALL.md)。工作流不读取 Apple 证书。更早的 Release `v1.0.0` 只有安卓包。
 
 ## 操作
 
