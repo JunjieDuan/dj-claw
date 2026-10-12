@@ -76,15 +76,14 @@ jobs:
           echo "v1.0.0 did not accept a new asset; publishing v1.0.1 with the existing APK"
           mkdir -p release-assets
           gh release download v1.0.0 --pattern pelican-rides-debug.apk --dir release-assets --repo "${repo}"
-          notes="$(cat <<'EOF'
-安卓 debug 包与 iOS 模拟器包。
-
-- 包名：com.junjieduan.pelicanrides
-- 方向：横屏
-- 安卓：pelican-rides-debug.apk，侧载安装即可
-- iOS：pelican-rides-ios-simulator.zip 是未签名的模拟器 App.app，不能安装到真机
-EOF
-)"
+          printf '%s\n' \
+            '安卓 debug 包与 iOS 模拟器包。' \
+            '' \
+            '- 包名：com.junjieduan.pelicanrides' \
+            '- 方向：横屏' \
+            '- 安卓：pelican-rides-debug.apk，侧载安装即可' \
+            '- iOS：pelican-rides-ios-simulator.zip 是未签名的模拟器 App.app，不能安装到真机' \
+            > release-notes.md
           if gh release view v1.0.1 --repo "${repo}" >/dev/null 2>&1; then
             gh release upload v1.0.1 "${zip}" release-assets/pelican-rides-debug.apk --clobber --repo "${repo}"
           else
@@ -92,7 +91,7 @@ EOF
               --repo "${repo}" \
               --target "${{ github.sha }}" \
               --title "鹈鹕骑车 v1.0.1" \
-              --notes "${notes}" \
+              --notes-file release-notes.md \
               "${zip}" \
               release-assets/pelican-rides-debug.apk
           fi
